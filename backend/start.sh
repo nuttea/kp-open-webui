@@ -55,4 +55,4 @@ if [ -n "$SPACE_ID" ]; then
 fi
 
 #WEBUI_SECRET_KEY="$WEBUI_SECRET_KEY" exec uvicorn open_webui.main:app --host "$HOST" --port "$PORT" --forwarded-allow-ips '*'
-WEBUI_SECRET_KEY="$WEBUI_SECRET_KEY" exec hypercorn open_webui.main:app --bind "$HOST:$PORT" --proxy-headers
+WEBUI_SECRET_KEY="$WEBUI_SECRET_KEY" exec hypercorn open_webui.main:app --bind "$HOST:$PORT" --backlog 200 --worker-class uvloop
