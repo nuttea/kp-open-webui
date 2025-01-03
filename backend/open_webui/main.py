@@ -864,9 +864,9 @@ async def chat_completion(
     logger.debug("DEBUG - CHAT_COMPLETIONS - BACKGROUND_TASKS")
     tasks = form_data.pop("background_tasks", None)
     try:
-        ##model_id = form_data.get("model", None)
-        ##if model_id not in request.app.state.MODELS:
-        ##    raise Exception("Model not found")
+        model_id = form_data.get("model", None)
+        if model_id not in request.app.state.MODELS:
+            raise Exception("Model not found")
         model = request.app.state.MODELS[model_id]
 
         # Check if user has access to the model
@@ -921,6 +921,7 @@ generate_chat_completion = chat_completion
 async def chat_completed(
     request: Request, form_data: dict, user=Depends(get_verified_user)
 ):
+    logger.debug("DEBUG - CHAT_COMPLETED - STARTED")
     try:
         return await chat_completed_handler(request, form_data, user)
     except Exception as e:

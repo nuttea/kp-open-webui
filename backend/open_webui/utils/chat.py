@@ -47,9 +47,11 @@ from open_webui.utils.response import (
 
 from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL, BYPASS_MODEL_ACCESS_CONTROL
 
+import open_webui.utils.gcp_logging as gcp_logging
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["MAIN"])
 
 
@@ -59,6 +61,7 @@ async def generate_chat_completion(
     user: Any,
     bypass_filter: bool = False,
 ):
+    logger.debug("DEBUG - GENERATE_CHAT_COMPLETION - START")
     if BYPASS_MODEL_ACCESS_CONTROL:
         bypass_filter = True
 
@@ -70,6 +73,7 @@ async def generate_chat_completion(
 
     # Process the form_data through the pipeline
     try:
+        logger.debug("DEBUG - GENERATE_CHAT_COMPLETION - PROCESS_PIPELINE_INLET_FILTER")
         form_data = process_pipeline_inlet_filter(request, form_data, user, models)
     except Exception as e:
         raise e
@@ -84,6 +88,7 @@ async def generate_chat_completion(
             raise e
 
     if model["owned_by"] == "arena":
+        logger.debug("DEBUG - GENERATE_CHAT_COMPLETION - ARENA")
         model_ids = model.get("info", {}).get("meta", {}).get("model_ids")
         filter_mode = model.get("info", {}).get("meta", {}).get("filter_mode")
         if model_ids and filter_mode == "exclude":
@@ -106,6 +111,7 @@ async def generate_chat_completion(
 
         form_data["model"] = selected_model_id
 
+        logger.debug("DEBUG - GENERATE_CHAT_COMPLETION - ARENA GENERATE_CHAT_COMPLETION")
         if form_data.get("stream") == True:
 
             async def stream_wrapper(stream):
@@ -133,11 +139,13 @@ async def generate_chat_completion(
 
     if model.get("pipe"):
         # Below does not require bypass_filter because this is the only route the uses this function and it is already bypassing the filter
+        logger.debug("DEBUG - GENERATE_CHAT_COMPLETION - PIPE GENERATE_FUNCTION_CHAT_COMPLETION")
         return await generate_function_chat_completion(
             request, form_data, user=user, models=models
         )
     if model["owned_by"] == "ollama":
         # Using /ollama/api/chat endpoint
+        logger.debug("DEBUG - GENERATE_CHAT_COMPLETION - GENERATE_OLLAMA_CHAT_COMPLETION")
         form_data = convert_payload_openai_to_ollama(form_data)
         response = await generate_ollama_chat_completion(
             request=request, form_data=form_data, user=user, bypass_filter=bypass_filter
@@ -152,6 +160,7 @@ async def generate_chat_completion(
         else:
             return convert_response_ollama_to_openai(response)
     else:
+        logger.debug("DEBUG - GENERATE_CHAT_COMPLETION - GENERATE_OPENAI_CHAT_COMPLETION")
         return await generate_openai_chat_completion(
             request=request, form_data=form_data, user=user, bypass_filter=bypass_filter
         )
@@ -161,6 +170,7 @@ chat_completion = generate_chat_completion
 
 
 async def chat_completed(request: Request, form_data: dict, user: Any):
+    logger.debug("DEBUG - CHAT_COMPLETED - GET_ALL_MODELS")
     if not request.app.state.MODELS:
         await get_all_models(request)
     models = request.app.state.MODELS
@@ -173,6 +183,7 @@ async def chat_completed(request: Request, form_data: dict, user: Any):
     model = models[model_id]
 
     try:
+        logger.debug("DEBUG - CHAT_COMPLETED - PROCESS_PIPELINE_OUTLET_FILTER")
         data = process_pipeline_outlet_filter(request, data, user, models)
     except Exception as e:
         return Exception(f"Error: {e}")
@@ -202,6 +213,7 @@ async def chat_completed(request: Request, form_data: dict, user: Any):
             return (function.valves if function.valves else {}).get("priority", 0)
         return 0
 
+    logger.debug("DEBUG - CHAT_COMPLETED - GET_GLOBAL_FILTER_FUNCTIONS")
     filter_ids = [function.id for function in Functions.get_global_filter_functions()]
     if "info" in model and "meta" in model["info"]:
         filter_ids.extend(model["info"]["meta"].get("filterIds", []))
@@ -286,6 +298,7 @@ async def chat_completed(request: Request, form_data: dict, user: Any):
         except Exception as e:
             return Exception(f"Error: {e}")
 
+    logger.debug("DEBUG - CHAT_COMPLETED - RETURN DATA")
     return data
 
 
