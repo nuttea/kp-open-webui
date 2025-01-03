@@ -424,7 +424,7 @@ app = FastAPI(
 
 app.state.config = AppConfig()
 
-FastAPIInstrumentor.instrument_app(app, excluded_urls="client/.*/info,healthcheck")
+FastAPIInstrumentor.instrument_app(app)
 RequestsInstrumentor().instrument()
 
 ########################################
