@@ -363,8 +363,8 @@ app.state.config = AppConfig()
 #
 ########################################
 
-import setup_opentelemetry
-import gcp_logging
+import backend.open_webui.utils.setup_opentelemetry as setup_opentelemetry
+import backend.open_webui.utils.gcp_logging as gcp_logging
 
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
