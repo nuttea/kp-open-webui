@@ -23,11 +23,11 @@ from open_webui.config import (
 
 from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
 
+import gcp_logging
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["MAIN"])
-
 
 async def get_all_base_models(request: Request):
     function_models = []
