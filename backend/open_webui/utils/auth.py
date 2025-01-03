@@ -1,6 +1,7 @@
 import logging
 import uuid
 import jwt
+import random
 
 from datetime import UTC, datetime, timedelta
 from typing import Optional, Union, List, Dict
@@ -128,7 +129,8 @@ def get_current_user(
                 detail=ERROR_MESSAGES.INVALID_TOKEN,
             )
         else:
-            Users.update_user_last_active_by_id(user.id)
+            if random.random() < 0.005:  # 0.5% chance
+                Users.update_user_last_active_by_id(user.id)
         return user
     else:
         raise HTTPException(
@@ -146,7 +148,8 @@ def get_current_user_by_api_key(api_key: str):
             detail=ERROR_MESSAGES.INVALID_TOKEN,
         )
     else:
-        Users.update_user_last_active_by_id(user.id)
+        if random.random() < 0.005:  # 0.5% chance
+            Users.update_user_last_active_by_id(user.id)
 
     return user
 
