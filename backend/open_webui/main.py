@@ -857,9 +857,11 @@ async def chat_completion(
     form_data: dict,
     user=Depends(get_verified_user),
 ):
+    logger.debug("DEBUG - CHAT_COMPLETIONS - STARTED")
     if not request.app.state.MODELS:
         await get_all_models(request)
 
+    logger.debug("DEBUG - CHAT_COMPLETIONS - BACKGROUND_TASKS")
     tasks = form_data.pop("background_tasks", None)
     try:
         ##model_id = form_data.get("model", None)
@@ -896,7 +898,9 @@ async def chat_completion(
         )
 
     try:
+        logger.debug("DEBUG - CHAT_COMPLETIONS - CHAT_COMPLETION_HANDLER")
         response = await chat_completion_handler(request, form_data, user)
+        logger.debug("DEBUG - CHAT_COMPLETIONS - PROCESS_CHAT_RESPONSE")
         return await process_chat_response(
             request, response, form_data, user, events, metadata, tasks
         )
