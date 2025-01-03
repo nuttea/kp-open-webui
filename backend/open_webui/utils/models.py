@@ -23,7 +23,7 @@ from open_webui.config import (
 
 from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
 
-import backend.open_webui.utils.gcp_logging as gcp_logging
+import open_webui.utils.gcp_logging as gcp_logging
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
