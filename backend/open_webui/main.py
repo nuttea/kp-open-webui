@@ -312,6 +312,72 @@ log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["MAIN"])
 
 
+########################################
+#
+# Opentelemetry
+#
+########################################
+
+from opentelemetry.sdk.resources import SERVICE_INSTANCE_ID, SERVICE_NAME, Resource
+
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+from opentelemetry import metrics
+from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+# [START opentelemetry_instrumentation_setup_opentelemetry]
+resource = Resource.create(attributes={
+    # Use the PID as the service.instance.id to avoid duplicate timeseries
+    # from different Gunicorn worker processes.
+    SERVICE_INSTANCE_ID: f"worker-{os.getpid()}",
+})
+
+traceProvider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(OTLPSpanExporter())
+traceProvider.add_span_processor(processor)
+trace.set_tracer_provider(traceProvider)
+
+reader = PeriodicExportingMetricReader(
+    OTLPMetricExporter()
+)
+meterProvider = MeterProvider(metric_readers=[reader], resource=resource)
+metrics.set_meter_provider(meterProvider)
+# [END opentelemetry_instrumentation_setup_opentelemetry]
+
+import logging
+from pythonjsonlogger import jsonlogger
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+
+# [START opentelemetry_instrumentation_setup_logging]
+LoggingInstrumentor().instrument()
+
+logHandler = logging.StreamHandler()
+formatter = jsonlogger.JsonFormatter(
+    "%(asctime)s %(levelname)s %(message)s %(otelTraceID)s %(otelSpanID)s %(otelTraceSampled)s",
+    rename_fields={
+        "levelname": "severity",
+        "asctime": "timestamp",
+        "otelTraceID": "logging.googleapis.com/trace",
+        "otelSpanID": "logging.googleapis.com/spanId",
+        "otelTraceSampled": "logging.googleapis.com/trace_sampled",
+        },
+    datefmt="%Y-%m-%dT%H:%M:%SZ",
+)
+logHandler.setFormatter(formatter)
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[logHandler],
+)
+# [END opentelemetry_instrumentation_setup_logging]
+
 class SPAStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
         try:
@@ -358,6 +424,8 @@ app = FastAPI(
 
 app.state.config = AppConfig()
 
+FastAPIInstrumentor.instrument_app(app, excluded_urls="client/.*/info,healthcheck")
+RequestsInstrumentor().instrument()
 
 ########################################
 #
